@@ -1,37 +1,79 @@
 // VolumenPedidos.jsx — INC-03
-// Cantidad total de pedidos y monto total en el período.
-// Incluye gráfico de barras CSS con ingresos por día.
+// Análisis de tendencias: distribución por día de semana y tendencia del período.
 
 import { useState, useCallback } from "react";
 import { getResumenPeriodo } from "../../services/reporteService";
 import { useFechas } from "./useFechas";
 import "./Reportes.css";
+import "./VolumenPedidos.css";
 
-// Agrupa las facturas por día (formato dd/mm)
+const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const DIAS_COMPLETO = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+
+const agruparPorDiaSemana = (facturas) => {
+  const mapa = Array(7).fill(0).map(() => ({ cantidad: 0, ingresos: 0 }));
+  for (const f of facturas) {
+    const dia = new Date(f.fechaEmision).getDay();
+    mapa[dia].cantidad += 1;
+    mapa[dia].ingresos += f.total;
+  }
+  return mapa;
+};
+
 const agruparPorDia = (facturas) => {
   const mapa = {};
   for (const f of facturas) {
-    const dia = new Date(f.fechaEmision).toLocaleDateString("es-AR", {
-      day: "2-digit", month: "2-digit",
-    });
-    if (!mapa[dia]) mapa[dia] = { ingresos: 0, cantidad: 0 };
-    mapa[dia].ingresos  += f.total;
-    mapa[dia].cantidad  += 1;
+    const date = new Date(f.fechaEmision);
+    const key = date.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" });
+    const ts = date.getTime();
+    if (!mapa[key]) mapa[key] = { cantidad: 0, ingresos: 0, ts };
+    mapa[key].cantidad += 1;
+    mapa[key].ingresos += f.total;
   }
-  // Ordenar por fecha
-  return Object.entries(mapa)
-    .sort((a, b) => {
-      const [dA, mA] = a[0].split("/").map(Number);
-      const [dB, mB] = b[0].split("/").map(Number);
-      return mA !== mB ? mA - mB : dA - dB;
-    });
+  return Object.entries(mapa).sort((a, b) => a[1].ts - b[1].ts);
+};
+
+const calcularTendencia = (diasData) => {
+  if (diasData.length < 2) return null;
+  const mitad = Math.floor(diasData.length / 2);
+  const primera = diasData.slice(0, mitad).reduce((a, [, v]) => a + v.cantidad, 0);
+  const segunda = diasData.slice(mitad).reduce((a, [, v]) => a + v.cantidad, 0);
+  const prom1 = primera / mitad;
+  const prom2 = segunda / (diasData.length - mitad);
+  const cambio = prom1 > 0 ? ((prom2 - prom1) / prom1) * 100 : 0;
+  return { subiendo: cambio > 5, bajando: cambio < -5, porcentaje: Math.abs(cambio).toFixed(0) };
+};
+
+const diaMaximo = (semanaData) => {
+  let max = 0, idx = 0;
+  semanaData.forEach((d, i) => { if (d.cantidad > max) { max = d.cantidad; idx = i; } });
+  return max > 0 ? { dia: DIAS_COMPLETO[idx], cantidad: max } : null;
+};
+
+const BarraHorizontal = ({ valor, max, color = "var(--color-primary)", label, sublabel, showValue }) => {
+  const pct = max > 0 ? (valor / max) * 100 : 0;
+  return (
+    <div className="vp-barra-row">
+      <div className="vp-barra-label">
+        <span className="vp-barra-label-main">{label}</span>
+        {sublabel && <span className="vp-barra-label-sub">{sublabel}</span>}
+      </div>
+      <div className="vp-barra-track">
+        <div
+          className="vp-barra-fill"
+          style={{ width: `${pct}%`, background: color }}
+        />
+      </div>
+      <span className="vp-barra-value" style={{ color }}>{showValue(valor)}</span>
+    </div>
+  );
 };
 
 const VolumenPedidos = () => {
   const { start, end, preset, setPreset, setStart, setEnd, PRESETS } = useFechas();
   const [resumen, setResumen] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState("");
+  const [error, setError] = useState("");
 
   const buscar = useCallback(async () => {
     setLoading(true);
@@ -46,13 +88,11 @@ const VolumenPedidos = () => {
     }
   }, [start, end]);
 
-  const diasData = resumen ? agruparPorDia(resumen.facturas) : [];
-  const maxIngresos = diasData.length > 0 ? Math.max(...diasData.map(([, v]) => v.ingresos)) : 1;
-  const maxCantidad = diasData.length > 0 ? Math.max(...diasData.map(([, v]) => v.cantidad)) : 1;
-
-  const promedio = resumen && resumen.cantidadPedidos > 0
-  ? (resumen.totalIngresos ?? 0) / resumen.cantidadPedidos
-  : 0;
+  const semanaData = resumen ? agruparPorDiaSemana(resumen.facturas) : [];
+  const diasData   = resumen ? agruparPorDia(resumen.facturas) : [];
+  const tendencia  = resumen ? calcularTendencia(diasData) : null;
+  const diaPico    = resumen ? diaMaximo(semanaData) : null;
+  const maxCantSemana = Math.max(...semanaData.map(d => d.cantidad), 1);
 
   return (
     <div>
@@ -99,30 +139,34 @@ const VolumenPedidos = () => {
 
       {resumen && !loading && (
         <>
-          {/* KPIs */}
-          <div className="kpi-grid">
-            <div className="kpi-card kpi-card--pedidos">
-              <div className="kpi-card__label">Total de pedidos</div>
-              <div className="kpi-card__valor kpi-card__valor--green">
-                {resumen.cantidadPedidos ?? 0}
-              </div>
-              <div className="kpi-card__sub">pedidos facturados</div>
+          {(diaPico || tendencia) && (
+            <div className="vp-insights">
+              {diaPico && (
+                <div className="vp-insight-card vp-insight-card--pico">
+                  <span className="vp-insight-icon">📅</span>
+                  <div>
+                    <div className="vp-insight-title">Día pico</div>
+                    <div className="vp-insight-valor">{diaPico.dia}</div>
+                    <div className="vp-insight-sub">{diaPico.cantidad} pedido{diaPico.cantidad !== 1 ? "s" : ""}</div>
+                  </div>
+                </div>
+              )}
+              {tendencia && (
+                <div className={`vp-insight-card ${tendencia.subiendo ? "vp-insight-card--sube" : tendencia.bajando ? "vp-insight-card--baja" : "vp-insight-card--estable"}`}>
+                  <span className="vp-insight-icon">
+                    {tendencia.subiendo ? "📈" : tendencia.bajando ? "📉" : "➡️"}
+                  </span>
+                  <div>
+                    <div className="vp-insight-title">Tendencia del período</div>
+                    <div className="vp-insight-valor">
+                      {tendencia.subiendo ? `+${tendencia.porcentaje}%` : tendencia.bajando ? `-${tendencia.porcentaje}%` : "Estable"}
+                    </div>
+                    <div className="vp-insight-sub">vs. primera mitad del período</div>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="kpi-card kpi-card--ingresos">
-              <div className="kpi-card__label">Monto total</div>
-              <div className="kpi-card__valor kpi-card__valor--primary">
-                ${(resumen.totalIngresos ?? 0).toLocaleString("es-AR")}
-              </div>
-              <div className="kpi-card__sub">recaudado en el período</div>
-            </div>
-            <div className="kpi-card kpi-card--promedio">
-              <div className="kpi-card__label">Ticket promedio</div>
-              <div className="kpi-card__valor kpi-card__valor--amber">
-                ${promedio.toLocaleString("es-AR", { maximumFractionDigits: 0 })}
-              </div>
-              <div className="kpi-card__sub">por pedido</div>
-            </div>
-          </div>
+          )}
 
           {resumen.facturas.length === 0 ? (
             <div className="reporte-empty">
@@ -130,45 +174,22 @@ const VolumenPedidos = () => {
               <p>No hay pedidos facturados en el período seleccionado.</p>
             </div>
           ) : (
-            <div style={{ display: "grid", gap: "var(--space-lg)", gridTemplateColumns: "1fr 1fr" }}>
-              {/* Gráfico ingresos por día */}
-              <div className="barchart">
-                <div className="barchart__title">Ingresos por día</div>
-                {diasData.map(([dia, val]) => (
-                  <div key={dia} className="barchart__row">
-                    <span className="barchart__label">{dia}</span>
-                    <div className="barchart__track">
-                      <div
-                        className="barchart__fill"
-                        style={{ width: `${(val.ingresos / maxIngresos) * 100}%` }}
-                      />
-                    </div>
-                    <span className="barchart__value">
-                      ${val.ingresos.toLocaleString("es-AR")}
-                    </span>
-                  </div>
-                ))}
+            <div className="vp-panel">
+              <div className="vp-panel-header">
+                <h3 className="vp-panel-title">Distribución semanal</h3>
+                <p className="vp-panel-desc">¿Qué días se vende más?</p>
               </div>
-
-              {/* Gráfico pedidos por día */}
-              <div className="barchart">
-                <div className="barchart__title">Pedidos por día</div>
-                {diasData.map(([dia, val]) => (
-                  <div key={dia} className="barchart__row">
-                    <span className="barchart__label">{dia}</span>
-                    <div className="barchart__track">
-                      <div
-                        className="barchart__fill"
-                        style={{
-                          width: `${(val.cantidad / maxCantidad) * 100}%`,
-                          background: "linear-gradient(90deg, var(--color-green-dark), var(--color-green-light))",
-                        }}
-                      />
-                    </div>
-                    <span className="barchart__value" style={{ color: "var(--color-green-light)" }}>
-                      {val.cantidad} ped.
-                    </span>
-                  </div>
+              <div className="vp-barras">
+                {semanaData.map((d, i) => (
+                  <BarraHorizontal
+                    key={i}
+                    label={DIAS_SEMANA[i]}
+                    sublabel={d.cantidad > 0 ? `$${d.ingresos.toLocaleString("es-AR")}` : ""}
+                    valor={d.cantidad}
+                    max={maxCantSemana}
+                    color={d.cantidad === maxCantSemana && d.cantidad > 0 ? "var(--color-primary)" : "var(--color-green-light)"}
+                    showValue={(v) => v > 0 ? `${v} ped.` : "—"}
+                  />
                 ))}
               </div>
             </div>
@@ -178,10 +199,10 @@ const VolumenPedidos = () => {
 
       {!resumen && !loading && (
         <div className="reporte-empty">
-          <img 
-            src="/calendario.png" 
-            alt="Seleccioná un período y presioná 'Ver reporte' para comenzar." 
-            className="reporte-empty__img" 
+          <img
+            src="/calendario.png"
+            alt="Seleccioná un período"
+            className="reporte-empty__img"
           />
           <p>Seleccioná un período y presioná "Ver reporte" para comenzar.</p>
         </div>

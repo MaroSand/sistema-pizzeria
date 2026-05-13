@@ -80,7 +80,7 @@ export const getResumenPeriodo = async (start, end) => {
 
   return {
   totalIngresos:   Number(income.totalRecaudado ?? 0),
-  cantidadPedidos: Number(income.cantidadFacturas ?? 0),
+cantidadPedidos: Number(income.orderCount ?? 0),
   facturas:        facturasFiltradas,
 };
 };
