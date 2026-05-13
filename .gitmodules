@@ -1,0 +1,3 @@
+[submodule "sistema-pizzeria"]
+	path = sistema-pizzeria
+	url = https://github.com/MaroSand/sistema-pizzeria.git

@@ -1,0 +1,147 @@
+/* VolumenPedidos.css — estilos específicos del reporte de pedidos por período */
+
+/* ── Insights row ── */
+.vp-insights {
+  display: flex;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-xl);
+}
+
+.vp-insight-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  flex: 1;
+  min-width: 200px;
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.vp-insight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.vp-insight-card--pico    { border-left: 4px solid var(--color-pendiente); }
+.vp-insight-card--sube    { border-left: 4px solid var(--color-green-light); }
+.vp-insight-card--baja    { border-left: 4px solid var(--color-primary); }
+.vp-insight-card--estable { border-left: 4px solid var(--color-border-strong); }
+
+.vp-insight-icon {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.vp-insight-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  margin-bottom: 2px;
+}
+
+.vp-insight-valor {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.5px;
+  line-height: 1;
+}
+
+.vp-insight-sub {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 3px;
+}
+
+/* ── Panel ── */
+.vp-panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.vp-panel-header {
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1.5px solid var(--color-border);
+}
+
+.vp-panel-title {
+  font-size: var(--font-size-base);
+  font-weight: 800;
+  color: var(--color-text);
+  letter-spacing: -0.3px;
+}
+
+.vp-panel-desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+/* ── Barras ── */
+.vp-barras {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vp-barra-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.vp-barra-label {
+  min-width: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.vp-barra-label-main {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.vp-barra-label-sub {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.vp-barra-track {
+  flex: 1;
+  height: 22px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+}
+
+.vp-barra-fill {
+  height: 100%;
+  border-radius: var(--radius-sm);
+  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  min-width: 3px;
+  opacity: 0.85;
+}
+
+.vp-barra-value {
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 52px;
+  text-align: right;
+  white-space: nowrap;
+}
