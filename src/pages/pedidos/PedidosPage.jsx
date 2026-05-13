@@ -17,6 +17,9 @@ const ordenarPedidos = (pedidos) =>
     return a.id - b.id;
   });
 
+const totalPizzas = (lineas) =>
+  lineas.reduce((acc, l) => acc + (Number(l.cantidad) || 0), 0);
+
 const PedidosPage = () => {
   const [todosLosPedidos, setTodosLosPedidos] = useState([]);
   const [filtro,          setFiltro]          = useState("Todos");
@@ -25,7 +28,6 @@ const PedidosPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Feedback al volver de crear/editar
   useEffect(() => {
     if (location.state?.mensaje) {
       setFeedback(location.state.mensaje);
@@ -47,24 +49,20 @@ const PedidosPage = () => {
   useEffect(() => {
     setLoading(true);
     cargar();
-    // Polling cada 30s para detectar cambios de estado en tiempo real
     const interval = setInterval(cargar, 30000);
     return () => clearInterval(interval);
   }, [cargar]);
 
-  // Contadores por estado
   const contadores = todosLosPedidos.reduce((acc, p) => {
     acc[p.estado] = (acc[p.estado] ?? 0) + 1;
     return acc;
   }, {});
 
-  // Filtrado client-side
   const pedidosFiltrados =
     filtro === "Todos"
       ? todosLosPedidos
       : todosLosPedidos.filter((p) => p.estado === filtro);
 
-  // Lista con separadores de grupo (solo en "Todos")
   const itemsConSeparadores = [];
   let lastEstado = null;
   for (const p of pedidosFiltrados) {
@@ -93,7 +91,6 @@ const PedidosPage = () => {
         </div>
       )}
 
-      {/* Filtros con contadores */}
       <div className="filtros-bar">
         {ESTADOS.map((e) => {
           const count = e === "Todos" ? todosLosPedidos.length : (contadores[e] ?? 0);
@@ -112,7 +109,6 @@ const PedidosPage = () => {
         })}
       </div>
 
-      {/* Lista */}
       {loading ? (
         <p className="empty-message">Cargando...</p>
       ) : pedidosFiltrados.length === 0 ? (
@@ -126,46 +122,51 @@ const PedidosPage = () => {
                 <span className="estado-separador__count">{contadores[item.estado] ?? 0}</span>
               </div>
             ) : (
-              <div
-                key={item.key}
-                className="pedido-row card"
-                onClick={() => navigate(`/pedidos/${item.data.id}`)}
-              >
-                <div className="pedido-row__left">
-                  <span className="pedido-nro">#{item.data.nroPedido}</span>
-                  <div>
-                    <p className="pedido-cliente">
-                      {item.data.cliente || <em>Consumidor Final</em>}
-                    </p>
-                    <p className="pedido-meta">
-                      {item.data.fecha} · Entrega: {item.data.horaEntrega} · Demora: {item.data.demoraEstimada}
-                    </p>
-                    <p className="pedido-meta">
-                      {item.data.lineas.length} ítem{item.data.lineas.length !== 1 ? "s" : ""}
-                    </p>
-                  </div>
-                </div>
+              (() => {
+                const cant = totalPizzas(item.data.lineas);
+                return (
+                  <div
+                    key={item.key}
+                    className="pedido-row card"
+                    onClick={() => navigate(`/pedidos/${item.data.id}`)}
+                  >
+                    <div className="pedido-row__left">
+                      <span className="pedido-nro">#{item.data.nroPedido}</span>
+                      <div>
+                        <p className="pedido-cliente">
+                          {item.data.cliente || <em>Consumidor Final</em>}
+                        </p>
+                        <p className="pedido-meta">
+                          {item.data.fecha} · Demora: {item.data.demoraEstimada}
+                        </p>
+                        <p className="pedido-meta">
+                          {cant} pizza{cant !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                    </div>
 
-                <div className="pedido-row__right">
-                  <Badge text={item.data.estado} color={item.data.estado.toLowerCase()} />
-                  <span className="pedido-total">
-                    ${calcularTotal(item.data.lineas).toLocaleString("es-AR")}
-                  </span>
-                  {item.data.estado === "Pendiente" ? (
-                    <button
-                      className="btn btn--ghost btn--sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/pedidos/editar/${item.data.id}`);
-                      }}
-                    >
-                      Editar
-                    </button>
-                  ) : (
-                    <div className="pedido-row__spacer" />
-                  )}
-                </div>
-              </div>
+                    <div className="pedido-row__right">
+                      <Badge text={item.data.estado} color={item.data.estado.toLowerCase()} />
+                      <span className="pedido-total">
+                        ${calcularTotal(item.data.lineas).toLocaleString("es-AR")}
+                      </span>
+                      {item.data.estado === "Pendiente" ? (
+                        <button
+                          className="btn btn--ghost btn--sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/pedidos/editar/${item.data.id}`);
+                          }}
+                        >
+                          Editar
+                        </button>
+                      ) : (
+                        <div className="pedido-row__spacer" />
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
             )
           )}
         </div>

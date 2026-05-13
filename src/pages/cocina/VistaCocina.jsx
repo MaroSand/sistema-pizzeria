@@ -78,7 +78,6 @@ const VistaCocina = () => {
           <div key={p.id} className="cocina-card">
             <div className="cocina-card__header">
               <span className="cocina-card__nro">Pedido #{p.nroPedido}</span>
-              <span className="cocina-card__hora">Entrega: {p.horaEntrega}</span>
             </div>
 
             {p.cliente && (

@@ -11,18 +11,18 @@ const toLocalDateTime = (date) => {
   );
 };
 
+const buildParams = (start, end) =>
+  new URLSearchParams({ start: toLocalDateTime(start), end: toLocalDateTime(end) });
+
 // ── Pizzas más pedidas ──────────────────────────────────────────────────────
 // GET /reportes/pizzas-mas-pedidas?start=&end=
-// Devuelve array de { nombre, tipoCoccion, tamanio, total }
+// Backend devuelve: [ [nombre, tipoCoccion, tamanio, cantidad], ... ]
 export const getPizzasMasPedidas = async (start, end) => {
-  const params = new URLSearchParams({
-    start: toLocalDateTime(start),
-    end:   toLocalDateTime(end),
+  const res = await fetch(`/reportes/pizzas-mas-pedidas?${buildParams(start, end)}`, {
+    credentials: "include",
   });
-  const res = await fetch(`/reportes/pizzas-mas-pedidas?${params}`, { credentials: "include" });
   if (!res.ok) throw new Error(`Error al obtener reporte (${res.status})`);
   const data = await res.json();
-  // data: [ [nombre, tipoCoccion, tamanio, cantidad], ... ]
   return data.map((row) => ({
     nombre:      row[0],
     tipoCoccion: row[1],
@@ -33,7 +33,7 @@ export const getPizzasMasPedidas = async (start, end) => {
 
 // ── Ingresos por período ────────────────────────────────────────────────────
 // Usa GET /factura/traer y filtra en cliente para tener el detalle de facturas.
-// Usado por IngresosPorPeriodo (necesita la tabla de facturas).
+// Necesario para la tabla de facturas en IngresosPorPeriodo.
 export const getResumenPeriodoConFacturas = async (start, end) => {
   const todasLasFacturas = await getFacturas();
 
@@ -52,33 +52,35 @@ export const getResumenPeriodoConFacturas = async (start, end) => {
   };
 };
 
-// ── Volumen de pedidos ──────────────────────────────────────────────────────
-// Usa los endpoints reales del backend:
-//   GET /reportes/ingresos?start=&end=
-//   GET /reportes/pedidos-por-periodo?start=&end=
-// Usado por VolumenPedidos (solo necesita KPIs, sin detalle de facturas).
+// ── Volumen de pedidos por período ──────────────────────────────────────────
+// GET /reportes/ingresos?start=&end=        → IncomeReportDto  { totalRecaudado, cantidadFacturas }
+// GET /reportes/pedidos-por-periodo?start=&end= → OrdersReportDto { cantidadPedidos, montoTotal }
+// Usado por VolumenPedidos (KPIs + gráficos por día desde /factura/traer).
 export const getResumenPeriodo = async (start, end) => {
-  const params = new URLSearchParams({
-    start: toLocalDateTime(start),
-    end:   toLocalDateTime(end),
-  });
+  const params = buildParams(start, end);
 
-  const [incomeRes, ordersRes] = await Promise.all([
+  const [incomeRes, ordersRes, todasLasFacturas] = await Promise.all([
     fetch(`/reportes/ingresos?${params}`, { credentials: "include" }),
     fetch(`/reportes/pedidos-por-periodo?${params}`, { credentials: "include" }),
+    getFacturas(),
   ]);
 
   if (!incomeRes.ok) throw new Error(`Error al obtener ingresos (${incomeRes.status})`);
   if (!ordersRes.ok) throw new Error(`Error al obtener pedidos (${ordersRes.status})`);
 
-  const income = await incomeRes.json(); // { desde, hasta, totalRecaudado, cantidadFacturas }
-  const orders = await ordersRes.json(); // { desde, hasta, cantidadPedidos, montoTotal }
+  const income = await incomeRes.json();
+  // income: { desde, hasta, totalRecaudado, cantidadFacturas }
+
+  // Filtramos las facturas del período para los gráficos por día
+  const facturasFiltradas = todasLasFacturas.filter((f) => {
+    if (!f.fechaEmision) return false;
+    const fecha = new Date(f.fechaEmision);
+    return fecha >= start && fecha <= end;
+  });
 
   return {
-    totalIngresos:   income.totalRecaudado,
-    cantidadPedidos: income.cantidadFacturas,
-    // VolumenPedidos no usa la tabla de facturas, pero el componente
-    // referencia resumen.facturas para el gráfico por día → array vacío.
-    facturas: [],
-  };
+  totalIngresos:   Number(income.totalRecaudado ?? 0),
+  cantidadPedidos: Number(income.cantidadFacturas ?? 0),
+  facturas:        facturasFiltradas,
+};
 };

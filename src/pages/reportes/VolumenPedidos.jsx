@@ -51,8 +51,8 @@ const VolumenPedidos = () => {
   const maxCantidad = diasData.length > 0 ? Math.max(...diasData.map(([, v]) => v.cantidad)) : 1;
 
   const promedio = resumen && resumen.cantidadPedidos > 0
-    ? resumen.totalIngresos / resumen.cantidadPedidos
-    : 0;
+  ? (resumen.totalIngresos ?? 0) / resumen.cantidadPedidos
+  : 0;
 
   return (
     <div>
@@ -104,14 +104,14 @@ const VolumenPedidos = () => {
             <div className="kpi-card kpi-card--pedidos">
               <div className="kpi-card__label">Total de pedidos</div>
               <div className="kpi-card__valor kpi-card__valor--green">
-                {resumen.cantidadPedidos}
+                {resumen.cantidadPedidos ?? 0}
               </div>
               <div className="kpi-card__sub">pedidos facturados</div>
             </div>
             <div className="kpi-card kpi-card--ingresos">
               <div className="kpi-card__label">Monto total</div>
               <div className="kpi-card__valor kpi-card__valor--primary">
-                ${resumen.totalIngresos.toLocaleString("es-AR")}
+                ${(resumen.totalIngresos ?? 0).toLocaleString("es-AR")}
               </div>
               <div className="kpi-card__sub">recaudado en el período</div>
             </div>
@@ -178,7 +178,11 @@ const VolumenPedidos = () => {
 
       {!resumen && !loading && (
         <div className="reporte-empty">
-          <div className="reporte-empty__icon">📅</div>
+          <img 
+            src="/calendario.png" 
+            alt="Seleccioná un período y presioná 'Ver reporte' para comenzar." 
+            className="reporte-empty__img" 
+          />
           <p>Seleccioná un período y presioná "Ver reporte" para comenzar.</p>
         </div>
       )}

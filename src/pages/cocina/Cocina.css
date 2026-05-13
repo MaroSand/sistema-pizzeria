@@ -203,7 +203,7 @@
   color: #fff;
   border: none;
   border-radius: var(--radius-md);
-  font-size: 14px;          /* Texto un poco más pequeño */
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
 }

@@ -156,7 +156,11 @@ const IngresosPorPeriodo = () => {
 
       {!resumen && !loading && (
         <div className="reporte-empty">
-          <div className="reporte-empty__icon">📅</div>
+          <img 
+            src="/calendario.png" 
+            alt="Seleccioná un período y presioná 'Ver reporte' para comenzar." 
+            className="reporte-empty__img" 
+          />
           <p>Seleccioná un período y presioná "Ver reporte" para comenzar.</p>
         </div>
       )}

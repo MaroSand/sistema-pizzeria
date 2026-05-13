@@ -323,9 +323,10 @@
   color: var(--color-text-muted);
 }
 
-.reporte-empty__icon {
-  font-size: 48px;
-  margin-bottom: var(--space-md);
+.reporte-empty__img {
+  width: 160px;
+  height: auto;
+  opacity: 0.6;
 }
 
 /* ── Filtro tipo cocción ── */
