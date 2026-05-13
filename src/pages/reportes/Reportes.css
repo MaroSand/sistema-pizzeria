@@ -326,7 +326,7 @@
 .reporte-empty__img {
   width: 160px;
   height: auto;
-  opacity: 0.6;
+  border-radius: 35px;
 }
 
 /* ── Filtro tipo cocción ── */

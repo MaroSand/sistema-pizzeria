@@ -9,9 +9,9 @@ import VolumenPedidos     from "./VolumenPedidos";
 import "./Reportes.css";
 
 const TABS = [
-  { id: "pizzas",    label: "🍕 Pizzas más pedidas" },
-  { id: "ingresos",  label: "💰 Ingresos por período" },
-  { id: "volumen",   label: "📊 Volumen de pedidos"  },
+  { id: "pizzas",    label: "Pizzas más pedidas" },
+  { id: "ingresos",  label: "Ingresos por período" },
+  { id: "volumen",   label: "Volumen de pedidos"  },
 ];
 
 const ReportesPage = () => {
